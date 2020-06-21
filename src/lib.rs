@@ -8,16 +8,16 @@ use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OrderIntent {
-    id: Uuid,
-    symbol: String,
-    qty: u32,
+    pub id: Uuid,
+    pub symbol: String,
+    pub qty: u32,
     #[serde(flatten, rename(serialize = "type"))]
-    order_type: OrderType,
-    side: Side,
-    limit_price: Option<f64>,
-    stop_price: Option<f64>,
-    time_in_force: TimeInForce,
-    extended_hours: bool,
+    pub order_type: OrderType,
+    pub side: Side,
+    pub limit_price: Option<f64>,
+    pub stop_price: Option<f64>,
+    pub time_in_force: TimeInForce,
+    pub extended_hours: bool,
 }
 
 pub async fn handle_message(api: &AlpacaConfig, msg: OwnedMessage) -> Result<AlpacaOrder> {
