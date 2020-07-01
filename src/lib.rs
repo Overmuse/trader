@@ -1,5 +1,5 @@
+use alpaca::orders::{submit_order, Order, OrderIntent};
 use alpaca::AlpacaConfig;
-use alpaca::orders::{Order, OrderIntent, submit_order};
 use anyhow::{anyhow, Result};
 use rdkafka::message::OwnedMessage;
 use rdkafka::Message;
@@ -17,4 +17,3 @@ async fn execute_order(api: &AlpacaConfig, oi: OrderIntent) -> Result<Order> {
     println!("{:?}", &oi);
     submit_order(api, &oi).await
 }
-

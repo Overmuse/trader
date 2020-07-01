@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-alpaca = {version = "0.1", path = "../alpaca"}
+alpaca = {version = "0.1", git = "https://github.com/AiaiaCapital/alpaca"}
 anyhow = "1.0"
 futures = "0.3"
 rdkafka = "0.23"

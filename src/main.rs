@@ -12,17 +12,17 @@ use trader::handle_message;
 #[tokio::main]
 async fn main() {
     let matches = App::new("Trader")
-	.version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
-	.about("Kafka stream trader")
-	.arg(
-	    Arg::with_name("brokers")
-		.short("b")
-		.long("brokers")
-		.help("Broker list in kafka format")
-		.takes_value(true)
-		.default_value("localhost:9092")
-	)
-	.get_matches();
+        .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
+        .about("Kafka stream trader")
+        .arg(
+            Arg::with_name("brokers")
+                .short("b")
+                .long("brokers")
+                .help("Broker list in kafka format")
+                .takes_value(true)
+                .default_value("localhost:9092"),
+        )
+        .get_matches();
 
     let brokers = matches.value_of("brokers").unwrap();
     let api = AlpacaConfig::new(
