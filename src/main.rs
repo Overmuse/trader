@@ -1,6 +1,6 @@
 use alpaca::AlpacaConfig;
 use clap::{App, Arg};
-use log::{warn, info};
+use log::{info, warn};
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::stream_consumer::StreamConsumer;
 use rdkafka::consumer::Consumer;
@@ -29,8 +29,8 @@ async fn main() {
                 .short("g")
                 .long("group-id")
                 .takes_value(true)
-                .default_value("1")
-            )
+                .default_value("trader"),
+        )
         .get_matches();
 
     let brokers = matches.value_of("brokers").unwrap();
@@ -58,8 +58,8 @@ async fn main() {
     while let Some(msg) = message_stream.next().await {
         let order = handle_message(&api, msg.unwrap().detach()).await;
         match order {
-            Ok(o) => info!("Submitted order: {:?}", o),
-            Err(e) => warn!("Failed to submit order: {:?}", e)
+            Ok(o) => info!("Submitted order: {:#?}", o),
+            Err(e) => warn!("Failed to submit order: {:#?}", e),
         }
     }
 }
