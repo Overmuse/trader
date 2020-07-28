@@ -12,7 +12,7 @@ use trader::handle_message;
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    env_logger::builder().format_timestamp_micros().init();
     let matches = App::new("Trader")
         .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
         .about("Kafka stream trader")
@@ -51,7 +51,7 @@ async fn main() {
         .create()
         .expect("Consumer creation failed");
 
-    c.subscribe(&["trade-intents"])
+    c.subscribe(&["intended-trades"])
         .expect("Cannot subscribe to specified topic");
     let mut message_stream = c.start();
 
