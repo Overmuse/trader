@@ -1,6 +1,7 @@
 use alpaca::AlpacaConfig;
+use anyhow::Result;
 use clap::{App, Arg};
-use log::{info, warn};
+use log::{info, warn, error};
 use rdkafka::config::ClientConfig;
 use rdkafka::consumer::stream_consumer::StreamConsumer;
 use rdkafka::consumer::Consumer;
@@ -10,9 +11,7 @@ use futures::StreamExt;
 
 use trader::handle_message;
 
-#[tokio::main]
-async fn main() {
-    env_logger::builder().format_timestamp_micros().init();
+async fn run() -> Result<()> {
     let matches = App::new("Trader")
         .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
         .about("Kafka stream trader")
@@ -62,4 +61,16 @@ async fn main() {
             Err(e) => warn!("Failed to submit order: {:#?}", e),
         }
     }
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() {
+    env_logger::builder().format_timestamp_micros().init();
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    
+    match rt.block_on(run()) {
+        Ok(_) => info!("Done!"),
+        Err(e) => error!("An error occured: {:?}", e),
+    };
 }
