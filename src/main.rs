@@ -2,9 +2,7 @@ use alpaca::AlpacaConfig;
 use anyhow::Result;
 use clap::{App, Arg};
 use log::{info, warn, error};
-use rdkafka::config::ClientConfig;
-use rdkafka::consumer::stream_consumer::StreamConsumer;
-use rdkafka::consumer::Consumer;
+use rdkafka::{consumer::Consumer, config::ClientConfig, consumer::stream_consumer::StreamConsumer};
 use std::env;
 
 use futures::StreamExt;
@@ -36,10 +34,9 @@ async fn run() -> Result<()> {
     let group_id = matches.value_of("group_id").unwrap();
     let api = AlpacaConfig::new(
         "https://paper-api.alpaca.markets".to_string(),
-        env::var("ALPACA_KEY_ID").unwrap(),
-        env::var("ALPACA_SECRET_KEY").unwrap(),
-    )
-    .unwrap();
+        env::var("ALPACA_KEY_ID")?,
+        env::var("ALPACA_SECRET_KEY")?,
+    )?;
 
     let c: StreamConsumer = ClientConfig::new()
         .set("group.id", group_id)
@@ -55,7 +52,7 @@ async fn run() -> Result<()> {
     let mut message_stream = c.start();
 
     while let Some(msg) = message_stream.next().await {
-        let order = handle_message(&api, msg.unwrap().detach()).await;
+        let order = handle_message(&api, msg?.detach()).await;
         match order {
             Ok(o) => info!("Submitted order: {:#?}", o),
             Err(e) => warn!("Failed to submit order: {:#?}", e),
@@ -64,8 +61,7 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     env_logger::builder().format_timestamp_micros().init();
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     

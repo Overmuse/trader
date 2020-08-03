@@ -1,9 +1,7 @@
-use alpaca::orders::{submit_order, Order, OrderIntent};
-use alpaca::AlpacaConfig;
+use alpaca::{AlpacaConfig, orders::{submit_order, Order, OrderIntent}};
 use anyhow::{anyhow, Result};
 use log::info;
-use rdkafka::message::OwnedMessage;
-use rdkafka::Message;
+use rdkafka::{message::OwnedMessage, Message};
 
 pub async fn handle_message(api: &AlpacaConfig, msg: OwnedMessage) -> Result<Order> {
     match msg.payload_view::<str>() {
