@@ -1,8 +1,10 @@
 use alpaca::AlpacaConfig;
 use anyhow::Result;
 use clap::{App, Arg};
-use log::{info, warn, error};
-use rdkafka::{consumer::Consumer, config::ClientConfig, consumer::stream_consumer::StreamConsumer};
+use log::{error, info, warn};
+use rdkafka::{
+    config::ClientConfig, consumer::stream_consumer::StreamConsumer, consumer::Consumer,
+};
 use std::env;
 
 use futures::StreamExt;
@@ -28,12 +30,20 @@ async fn run() -> Result<()> {
                 .takes_value(true)
                 .default_value("trader"),
         )
+        .arg(
+            Arg::with_name("url")
+                .short("u")
+                .long("url")
+                .takes_value(true)
+                .default_value("https://paper-api.alpaca.markets"),
+        )
         .get_matches();
 
     let brokers = matches.value_of("brokers").unwrap();
     let group_id = matches.value_of("group_id").unwrap();
+    let url = matches.value_of("url").unwrap().to_string();
     let api = AlpacaConfig::new(
-        "https://paper-api.alpaca.markets".to_string(),
+        url,
         env::var("ALPACA_KEY_ID")?,
         env::var("ALPACA_SECRET_KEY")?,
     )?;
@@ -64,7 +74,7 @@ async fn run() -> Result<()> {
 fn main() {
     env_logger::builder().format_timestamp_micros().init();
     let mut rt = tokio::runtime::Runtime::new().unwrap();
-    
+
     match rt.block_on(run()) {
         Ok(_) => info!("Done!"),
         Err(e) => error!("An error occured: {:?}", e),
