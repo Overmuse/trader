@@ -1,14 +1,12 @@
 use alpaca::AlpacaConfig;
 use anyhow::Result;
 use clap::{App, Arg};
+use futures::StreamExt;
 use log::{error, info, warn};
 use rdkafka::{
     config::ClientConfig, consumer::stream_consumer::StreamConsumer, consumer::Consumer,
 };
 use std::env;
-
-use futures::StreamExt;
-
 use trader::handle_message;
 
 async fn run() -> Result<()> {
