@@ -1,6 +1,7 @@
-use alpaca::AlpacaConfig;
+use alpaca::Client;
 use anyhow::Result;
 use clap::{App, Arg};
+use dotenv::dotenv;
 use futures::StreamExt;
 use log::{error, info, warn};
 use rdkafka::{
@@ -40,7 +41,7 @@ async fn run() -> Result<()> {
     let brokers = matches.value_of("brokers").unwrap();
     let group_id = matches.value_of("group_id").unwrap();
     let url = matches.value_of("url").unwrap().to_string();
-    let api = AlpacaConfig::new(
+    let api = Client::new(
         url,
         env::var("ALPACA_KEY_ID")?,
         env::var("ALPACA_SECRET_KEY")?,
@@ -59,6 +60,7 @@ async fn run() -> Result<()> {
         .expect("Cannot subscribe to specified topic");
     let mut message_stream = c.start();
 
+    // TODO: Stream the messages concurrently
     while let Some(msg) = message_stream.next().await {
         let order = handle_message(&api, msg?.detach()).await;
         match order {
@@ -70,6 +72,7 @@ async fn run() -> Result<()> {
 }
 
 fn main() {
+    dotenv().ok();
     env_logger::builder().format_timestamp_micros().init();
     let mut rt = tokio::runtime::Runtime::new().unwrap();
 

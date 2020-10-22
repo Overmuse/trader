@@ -1,7 +1,8 @@
 use alpaca::{
-    orders::{submit_order, Order, OrderIntent},
-    AlpacaConfig,
+    orders::{Order, OrderIntent, SubmitOrder},
+    Client,
 };
+//TODO: Use tracing
 use log::info;
 use rdkafka::{message::OwnedMessage, Message};
 use thiserror::Error;
@@ -31,14 +32,14 @@ async fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     }
 }
 
-async fn execute_order(api: &AlpacaConfig, oi: OrderIntent) -> Result<Order> {
+async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
     info!("Submitting order intent: {:#?}", &oi);
-    submit_order(api, &oi)
+    api.send(SubmitOrder(oi))
         .await
         .map_err(|e| TraderError::Alpaca(e.to_string()))
 }
 
-pub async fn handle_message(api: &AlpacaConfig, msg: OwnedMessage) -> Result<Order> {
+pub async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
     let order_intent = parse_message(msg).await?;
     execute_order(api, order_intent).await
 }

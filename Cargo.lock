@@ -11,17 +11,16 @@ dependencies = [
 
 [[package]]
 name = "alpaca"
-version = "0.1.0"
-source = "git+https://github.com/AiaiaCapital/alpaca#98f354bd1d3e89f599f7b02db4ed88486e0f8e50"
+version = "0.2.0"
+source = "git+https://github.com/AiaiaCapital/alpaca#8e885fa6f6f1adc0f88b417aa551bdb04988f41f"
 dependencies = [
- "anyhow",
  "chrono",
- "env_logger",
+ "futures",
  "log",
  "reqwest",
  "serde",
  "serde_json",
- "tokio",
+ "thiserror",
  "uuid",
 ]
 
@@ -146,6 +145,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
 name = "dtoa"
@@ -1221,6 +1226,7 @@ dependencies = [
  "alpaca",
  "anyhow",
  "clap",
+ "dotenv",
  "env_logger",
  "futures",
  "log",
