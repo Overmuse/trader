@@ -34,7 +34,7 @@ async fn run() -> Result<()> {
                 .short("u")
                 .long("url")
                 .takes_value(true)
-                .default_value("https://paper-api.alpaca.markets"),
+                .default_value("https://paper-api.alpaca.markets/v2"),
         )
         .get_matches();
 
