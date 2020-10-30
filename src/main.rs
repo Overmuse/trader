@@ -58,16 +58,21 @@ async fn run() -> Result<()> {
 
     c.subscribe(&["intended-trades"])
         .expect("Cannot subscribe to specified topic");
-    let mut message_stream = c.start();
 
-    // TODO: Stream the messages concurrently
-    while let Some(msg) = message_stream.next().await {
-        let order = handle_message(&api, msg?.detach()).await;
-        match order {
-            Ok(o) => info!("Submitted order: {:#?}", o),
-            Err(e) => warn!("Failed to submit order: {:#?}", e),
-        }
-    }
+    c.start()
+        .for_each_concurrent(10, |msg| async {
+            match msg {
+                Ok(msg) => {
+                    let order = handle_message(&api, msg.detach()).await;
+                    match order {
+                        Ok(o) => info!("Submitted order: {:#?}", o),
+                        Err(e) => warn!("Failed to submit order: {:?}", e),
+                    }
+                }
+                Err(e) => warn!("Error received: {:?}", e),
+            }
+        })
+        .await;
     Ok(())
 }
 
