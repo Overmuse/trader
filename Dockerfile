@@ -5,6 +5,7 @@ COPY ./ ./
 RUN git config --global credential.helper store
 RUN echo "https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com" > ~/.git-credentials
 RUN chmod 600 ~/.git-credentials
+RUN cat ~/.git-credentials
 
 RUN cargo build --release
 
