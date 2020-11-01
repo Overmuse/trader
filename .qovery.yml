@@ -1,0 +1,5 @@
+application:
+  name: trader
+  project: aiaia-trading
+  publicly_accessible: false
+  organization: QoveryCommunity

@@ -15,14 +15,6 @@ async fn run() -> Result<()> {
         .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
         .about("Kafka stream trader")
         .arg(
-            Arg::with_name("brokers")
-                .short("b")
-                .long("brokers")
-                .help("Broker list in kafka format")
-                .takes_value(true)
-                .default_value("localhost:9092"),
-        )
-        .arg(
             Arg::with_name("group_id")
                 .short("g")
                 .long("group-id")
@@ -38,7 +30,6 @@ async fn run() -> Result<()> {
         )
         .get_matches();
 
-    let brokers = matches.value_of("brokers").unwrap();
     let group_id = matches.value_of("group_id").unwrap();
     let url = matches.value_of("url").unwrap().to_string();
     let api = Client::new(
@@ -49,7 +40,11 @@ async fn run() -> Result<()> {
 
     let c: StreamConsumer = ClientConfig::new()
         .set("group.id", group_id)
-        .set("bootstrap.servers", brokers)
+        .set("bootstrap.servers", &std::env::var("KAFKA_BROKERS")?)
+        .set("security.protocol", "SASL_SSL")
+        .set("sasl.mechanisms", "PLAIN")
+        .set("sasl.username", &std::env::var("CLUSTER_API_KEY")?)
+        .set("sasl.password", &std::env::var("CLUSTER_API_SECRET")?)
         .set("enable.partition.eof", "false")
         .set("session.timeout.ms", "6000")
         .set("enable.auto.commit", "false")

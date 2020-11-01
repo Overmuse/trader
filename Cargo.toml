@@ -10,7 +10,7 @@ edition = "2018"
 alpaca = {version = "0.2", git = "https://github.com/AiaiaCapital/alpaca"}
 anyhow = "1.0.32"
 futures = "0.3.5"
-rdkafka = "0.24.0"
+rdkafka = {version = "0.24.0", features = ["ssl"]}
 serde = "1.0.116"
 tokio = { version = "0.2.22", features = ["macros", "rt-threaded"] }
 uuid = "0.8.1"
