@@ -16,6 +16,10 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
+      - name: Setup git credentials
+        uses: fusion-engineering/setup-git-credentials@v2
+        with:
+          credentials: ${{secrets.GIT_USER_CREDENTIALS}}
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -31,6 +35,10 @@ jobs:
     name: Test & Coverage
     runs-on: ubuntu-latest
     steps:
+      - name: Setup git credentials
+        uses: fusion-engineering/setup-git-credentials@v2
+        with:
+          credentials: ${{secrets.GIT_USER_CREDENTIALS}}
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: Install toolchain
@@ -51,6 +59,10 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
+      - name: Setup git credentials
+        uses: fusion-engineering/setup-git-credentials@v2
+        with:
+          credentials: ${{secrets.GIT_USER_CREDENTIALS}}
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -68,6 +80,10 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
+      - name: Setup git credentials
+        uses: fusion-engineering/setup-git-credentials@v2
+        with:
+          credentials: ${{secrets.GIT_USER_CREDENTIALS}}
       - name: Checkout repository
         uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
