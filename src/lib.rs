@@ -1,29 +1,15 @@
+use crate::errors::{Result, TraderError};
 use alpaca::{
     orders::{Order, OrderIntent, SubmitOrder},
     Client,
 };
-//TODO: Use tracing
-use log::info;
 use rdkafka::{message::OwnedMessage, Message};
-use thiserror::Error;
+use tracing::info;
 
-#[derive(Debug, Error)]
-pub enum TraderError {
-    #[error("Error when submitting order to Alpaca: {0}")]
-    Alpaca(String),
+pub mod errors;
+pub mod telemetry;
 
-    #[error("Trader received invalid message: {0}")]
-    InvalidMessage(String),
-
-    #[error("Trader received empty message")]
-    EmptyMessage,
-
-    #[error("Failed to deserialize message into OrderIntent")]
-    Serde(#[from] serde_json::Error),
-}
-
-pub type Result<T> = std::result::Result<T, TraderError>;
-
+#[tracing::instrument]
 async fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     match msg.payload_view::<str>() {
         Some(Ok(payload)) => serde_json::from_str(payload).map_err(TraderError::Serde),
@@ -32,6 +18,7 @@ async fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     }
 }
 
+#[tracing::instrument(skip(api))]
 async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
     info!("Submitting order intent: {:#?}", &oi);
     api.send(SubmitOrder(oi))
@@ -39,6 +26,7 @@ async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
         .map_err(|e| TraderError::Alpaca(e.to_string()))
 }
 
+#[tracing::instrument(skip(api))]
 pub async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
     let order_intent = parse_message(msg).await?;
     execute_order(api, order_intent).await

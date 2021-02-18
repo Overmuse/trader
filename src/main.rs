@@ -3,14 +3,16 @@ use anyhow::Result;
 use clap::{App, Arg};
 use dotenv::dotenv;
 use futures::StreamExt;
-use log::{error, info, warn};
 use rdkafka::{
     config::ClientConfig, consumer::stream_consumer::StreamConsumer, consumer::Consumer,
 };
 use std::env;
+use tracing::{error, info, warn};
 use trader::handle_message;
+use trader::telemetry::{get_subscriber, init_subscriber};
 
 async fn run() -> Result<()> {
+    info!("Initiating trader");
     let matches = App::new("Trader")
         .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
         .about("Kafka stream trader")
@@ -46,6 +48,7 @@ async fn run() -> Result<()> {
         .set("sasl.username", &std::env::var("CLUSTER_API_KEY")?)
         .set("sasl.password", &std::env::var("CLUSTER_API_SECRET")?)
         .set("enable.partition.eof", "false")
+        .set("enable.ssl.certificate.verification", "false")
         .set("session.timeout.ms", "6000")
         .set("enable.auto.commit", "false")
         .create()
@@ -73,7 +76,9 @@ async fn run() -> Result<()> {
 
 fn main() {
     dotenv().ok();
-    env_logger::builder().format_timestamp_micros().init();
+    let subscriber = get_subscriber("trader".into(), "info".into());
+    init_subscriber(subscriber);
+
     let mut rt = tokio::runtime::Runtime::new().unwrap();
 
     match rt.block_on(run()) {
