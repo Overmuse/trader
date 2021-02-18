@@ -26,7 +26,7 @@ pub type Result<T> = std::result::Result<T, TraderError>;
 
 async fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     match msg.payload_view::<str>() {
-        Some(Ok(payload)) => serde_json::from_str(payload).map_err(|e| TraderError::Serde(e)),
+        Some(Ok(payload)) => serde_json::from_str(payload).map_err(TraderError::Serde),
         Some(Err(e)) => Err(TraderError::InvalidMessage(e.to_string())),
         None => Err(TraderError::EmptyMessage),
     }
