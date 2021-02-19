@@ -3,7 +3,7 @@
 [[package]]
 name = "alpaca"
 version = "0.2.0"
-source = "git+ssh://git@github.com/AiaiaCapital/alpaca#b59583c2924e576be32371fe1af7eda8c9f55940"
+source = "git+ssh://git@github.com/Overmuse/alpaca#b59583c2924e576be32371fe1af7eda8c9f55940"
 dependencies = [
  "chrono",
  "futures",

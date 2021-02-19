@@ -4,7 +4,7 @@ COPY ./ ./
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
-RUN cargo build --release
+RUN --mount=ssh cargo build --release
 
 RUN mkdir -p /build-out
 
