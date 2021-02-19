@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: trader
-        image: 799439856592.dkr.ecr.us-east-2.amazonaws.com/trader:latest
+        image: 799439856592.dkr.ecr.us-east-2.amazonaws.com/trader:1a0a1376876e48393784566d720ee428ee641492
         envFrom:
         - secretRef:
             name: alpaca
