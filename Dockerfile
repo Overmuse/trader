@@ -2,7 +2,7 @@ FROM rust as build
 
 COPY ./ ./
 
-RUN --mount=type=ssh cargo build --release
+RUN cargo build --release
 
 RUN mkdir -p /build-out
 
