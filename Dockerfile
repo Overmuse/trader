@@ -2,8 +2,6 @@ FROM rust as build
 
 COPY ./ ./
 
-ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
-
 RUN --mount=type=ssh cargo build --release
 
 RUN mkdir -p /build-out
