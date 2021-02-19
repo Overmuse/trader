@@ -1,6 +1,7 @@
 FROM rust as build
 
 COPY ./ ./
+COPY ./.cargo/config.toml ./.cargo/config.toml
 
 RUN cargo build --release
 
