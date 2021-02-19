@@ -1,7 +1,8 @@
 FROM rust as build
 
 COPY ./ ./
-COPY ./.cargo/config.toml ./.cargo/config.toml
+
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 RUN cargo build --release
 
