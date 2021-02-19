@@ -25,14 +25,28 @@ spec:
     spec:
       containers:
       - name: trader
-        image: 799439856592.dkr.ecr.us-east-2.amazonaws.com/trader:1a0a1376876e48393784566d720ee428ee641492
-        envFrom:
-        - secretRef:
-            name: alpaca
-        envFrom:
-        - secretRef:
-            name: kafka
+        image: 799439856592.dkr.ecr.us-east-2.amazonaws.com/trader:e9c1a7b15085965008666216ccf47c35784fdc4b
         env:
+        - name: APCA_API_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: alpaca
+              key: APCA_API_KEY_ID
+        - name: APCA_API_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: alpaca
+              key: APCA_API_SECRET_KEY
+        - name: SASL_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: kafka
+              key: SASL_USERNAME
+        - name: SASL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kafka
+              key: SASL_PASSWORD
         - name: BOOTSTRAP_SERVERS
           valueFrom:
             configMapKeyRef:
