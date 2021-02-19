@@ -96,3 +96,20 @@ jobs:
         with:
           command: clippy
           args: -- -D warnings
+
+  build:
+    name: Build and push to docker
+    runs-on: ubuntu-latest
+    #needs: [check, coverage, fmt, clippy]
+    steps:
+     - name: Login to Amazon ECR
+       id: login-ecr
+       uses: aws-actions/amazon-ecr-login@v1
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: trader
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG 
