@@ -21,9 +21,7 @@ async fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
 #[tracing::instrument(skip(api))]
 async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
     info!("Submitting order intent: {:#?}", &oi);
-    api.send(SubmitOrder(oi))
-        .await
-        .map_err(|e| TraderError::Alpaca(e.to_string()))
+    api.send(SubmitOrder(oi)).await.map_err(TraderError::Alpaca)
 }
 
 #[tracing::instrument(skip(api))]

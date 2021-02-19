@@ -1,6 +1,4 @@
 use alpaca::Client;
-use anyhow::Result;
-use clap::{App, Arg};
 use dotenv::dotenv;
 use futures::StreamExt;
 use rdkafka::{
@@ -8,53 +6,28 @@ use rdkafka::{
 };
 use std::env;
 use tracing::{error, info, warn};
+use trader::errors::Result;
 use trader::handle_message;
 use trader::telemetry::{get_subscriber, init_subscriber};
 
 async fn run() -> Result<()> {
     info!("Initiating trader");
-    let matches = App::new("Trader")
-        .version(option_env!("CARGO_PKG_VERSION").unwrap_or(""))
-        .about("Kafka stream trader")
-        .arg(
-            Arg::with_name("group_id")
-                .short("g")
-                .long("group-id")
-                .takes_value(true)
-                .default_value("trader"),
-        )
-        .arg(
-            Arg::with_name("url")
-                .short("u")
-                .long("url")
-                .takes_value(true)
-                .default_value("https://paper-api.alpaca.markets/v2"),
-        )
-        .get_matches();
-
-    let group_id = matches.value_of("group_id").unwrap();
-    let url = matches.value_of("url").unwrap().to_string();
-    let api = Client::new(
-        url,
-        env::var("ALPACA_KEY_ID")?,
-        env::var("ALPACA_SECRET_KEY")?,
-    )?;
+    let api = Client::from_env()?;
 
     let c: StreamConsumer = ClientConfig::new()
-        .set("group.id", group_id)
-        .set("bootstrap.servers", &std::env::var("KAFKA_BROKERS")?)
+        .set("group.id", &env::var("GROUP_ID")?)
+        .set("bootstrap.servers", &env::var("BOOTSTRAP_SERVERS")?)
         .set("security.protocol", "SASL_SSL")
         .set("sasl.mechanisms", "PLAIN")
-        .set("sasl.username", &std::env::var("CLUSTER_API_KEY")?)
-        .set("sasl.password", &std::env::var("CLUSTER_API_SECRET")?)
+        .set("sasl.username", &env::var("SASL_USERNAME")?)
+        .set("sasl.password", &env::var("SASL_PASSWORD")?)
         .set("enable.partition.eof", "false")
-        .set("enable.ssl.certificate.verification", "false")
         .set("session.timeout.ms", "6000")
         .set("enable.auto.commit", "false")
         .create()
         .expect("Consumer creation failed");
 
-    c.subscribe(&["intended-trades"])
+    c.subscribe(&[&env::var("ORDER_INTENT_TOPIC")?])
         .expect("Cannot subscribe to specified topic");
 
     c.start()
