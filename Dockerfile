@@ -27,6 +27,6 @@ RUN --mount=type=ssh cargo build --release --bin trader
 FROM rust as runtime
 WORKDIR trader
 COPY --from=builder /trader/target/release/trader /usr/local/bin
-ENV RUST_LOG=debug
+ENV RUST_LOG=trader=debug
 RUN apt-get update && apt-get -y install ca-certificates libssl-dev && rm -rf /var/lib/apt/lists/*
 ENTRYPOINT ["/usr/local/bin/trader"]
