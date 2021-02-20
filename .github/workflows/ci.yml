@@ -6,14 +6,14 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
-      - 'trader-k8s.yml'
+      - 'deployment.yml'
       - 'src/**'  
   pull_request:
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
-      - 'trader-k8s.yml'
+      - 'deployment.yml'
       - 'src/**'  
 
 name: Continuous integration
@@ -198,4 +198,4 @@ jobs:
       - name: Deploy to EKS
         env:
           IMAGE_TAG: ${{ github.sha }}
-        run: envsubst < trader-k8s.yml | kubectl apply -f - 
+        run: envsubst < deployment.yml | kubectl apply -f - 
