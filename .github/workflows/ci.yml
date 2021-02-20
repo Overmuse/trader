@@ -52,6 +52,7 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    needs: [fmt]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
