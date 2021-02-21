@@ -8,6 +8,7 @@ on:
       - 'Dockerfile'
       - 'deployment.yml'
       - 'src/**'  
+      - '.github/**'
   pull_request:
     paths:
       - 'Cargo.toml'
@@ -15,6 +16,7 @@ on:
       - 'Dockerfile'
       - 'deployment.yml'
       - 'src/**'  
+      - '.github/**'
 
 name: Continuous integration
 
