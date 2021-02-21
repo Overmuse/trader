@@ -188,7 +188,7 @@ jobs:
         run: |
           docker build --ssh default -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-	  - name: Deploy to cluster
+      - name: Deploy to cluster
         uses: kodermax/kubectl-aws-eks@master
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
