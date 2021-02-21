@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: trader
-        image: 799439856592.dkr.ecr.us-east-2.amazonaws.com/trader:${IMAGE_TAG}
+        image: 799439856592.dkr.ecr.us-east-1.amazonaws.com/trader:${IMAGE_TAG}
         env:
         - name: APCA_API_KEY_ID
           valueFrom:
