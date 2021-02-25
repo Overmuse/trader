@@ -102,7 +102,7 @@ mod test {
         );
         let e = parse_message(msg).await;
         assert!(e.is_err());
-        if let TraderError::Serde(s) = e.err().unwrap() {
+        if let TraderError::Serde(_) = e.err().unwrap() {
         } else {
             panic!("Expected Serde")
         }
