@@ -21,6 +21,7 @@ async fn run() -> Result<()> {
         .set("sasl.mechanisms", "PLAIN")
         .set("sasl.username", &env::var("SASL_USERNAME")?)
         .set("sasl.password", &env::var("SASL_PASSWORD")?)
+        .set("enable.ssl.certificate.verification", "false")
         .create()
         .expect("Consumer creation failed");
 
@@ -44,15 +45,14 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     dotenv().ok();
     let subscriber = get_subscriber("trader".into(), "info".into());
     init_subscriber(subscriber);
 
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
-
-    match rt.block_on(run()) {
+    match run().await {
         Ok(_) => info!("Done!"),
         Err(e) => error!("An error occured: {:?}", e),
-    };
+    }
 }
