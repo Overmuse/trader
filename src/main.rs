@@ -28,7 +28,7 @@ async fn run() -> Result<()> {
     c.subscribe(&[&env::var("ORDER_INTENT_TOPIC")?])
         .expect("Cannot subscribe to specified topic");
 
-    c.start()
+    c.stream()
         .for_each_concurrent(10, |msg| async {
             match msg {
                 Ok(msg) => {
