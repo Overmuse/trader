@@ -21,9 +21,6 @@ async fn run() -> Result<()> {
         .set("sasl.mechanisms", "PLAIN")
         .set("sasl.username", &env::var("SASL_USERNAME")?)
         .set("sasl.password", &env::var("SASL_PASSWORD")?)
-        .set("enable.partition.eof", "false")
-        .set("session.timeout.ms", "6000")
-        .set("enable.auto.commit", "false")
         .create()
         .expect("Consumer creation failed");
 
