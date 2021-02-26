@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -164,7 +164,7 @@ jobs:
     name: Build and push to registry
     runs-on: ubuntu-latest
     needs: [check, coverage, fmt, clippy]
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
