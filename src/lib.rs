@@ -9,8 +9,8 @@ use tracing::info;
 pub mod errors;
 pub mod telemetry;
 
-#[tracing::instrument]
-async fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
+#[tracing::instrument(skip(msg))]
+fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     match msg.payload_view::<str>() {
         Some(Ok(payload)) => serde_json::from_str(payload).map_err(TraderError::Serde),
         Some(Err(e)) => Err(TraderError::InvalidMessage(e.to_string())),
@@ -24,9 +24,9 @@ async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
     api.send(SubmitOrder(oi)).await.map_err(TraderError::Alpaca)
 }
 
-#[tracing::instrument(skip(api))]
+#[tracing::instrument(skip(api, msg))]
 pub async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
-    let order_intent = parse_message(msg).await?;
+    let order_intent = parse_message(msg)?;
     execute_order(api, order_intent).await
 }
 

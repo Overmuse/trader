@@ -29,7 +29,7 @@ async fn run() -> Result<()> {
         .expect("Cannot subscribe to specified topic");
 
     c.stream()
-        .for_each_concurrent(10, |msg| async {
+        .for_each_concurrent(None, |msg| async {
             match msg {
                 Ok(msg) => {
                     let order = handle_message(&api, msg.detach()).await;
