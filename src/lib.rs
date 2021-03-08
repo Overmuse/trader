@@ -1,6 +1,7 @@
 use crate::errors::{Result, TraderError};
 use alpaca::{
-    orders::{Order, OrderIntent, SubmitOrder},
+    common::Order,
+    orders::{OrderIntent, SubmitOrder},
     Client,
 };
 use rdkafka::{message::OwnedMessage, Message};
@@ -41,7 +42,7 @@ mod test {
     fn unwrap_msg() {
         let payload = r#"{
             "symbol":"AAPL",
-            "qty":"1",
+            "qty":"1.0",
             "side":"buy",
             "type":"limit",
             "limit_price":"100",
@@ -108,7 +109,7 @@ mod test {
 
     #[tokio::test]
     async fn generates_correct_trade() {
-        let payload = r#"{"symbol":"AAPL","qty":"1","side":"buy","type":"limit","limit_price":"100","time_in_force":"gtc","extended_hours":false,"client_order_id":"TEST","order_class":"simple"}"#;
+        let payload = r#"{"symbol":"AAPL","qty":"1.5","side":"buy","type":"limit","limit_price":"100","time_in_force":"gtc","extended_hours":false,"client_order_id":"TEST","order_class":"simple"}"#;
         let msg = OwnedMessage::new(
             Some(payload.as_bytes().to_vec()), // payload
             None,                              // header
@@ -140,7 +141,7 @@ mod test {
 		    "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
 		    "symbol": "AAPL",
 		    "asset_class": "us_equity",
-		    "qty": "1",
+		    "qty": "1.5",
 		    "filled_qty": "0",
                     "filled_avg_price": null,
 		    "type": "limit",
