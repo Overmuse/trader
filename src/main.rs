@@ -1,49 +1,9 @@
-use alpaca::Client;
 use dotenv::dotenv;
-use futures::StreamExt;
-use rdkafka::{
-    config::ClientConfig, consumer::stream_consumer::StreamConsumer, consumer::Consumer,
+use tracing::{error, info};
+use trader::{
+    run,
+    telemetry::{get_subscriber, init_subscriber},
 };
-use std::env;
-use tracing::{error, info, warn};
-use trader::errors::Result;
-use trader::handle_message;
-use trader::telemetry::{get_subscriber, init_subscriber};
-
-async fn run() -> Result<()> {
-    info!("Initiating trader");
-    let api = Client::from_env()?;
-
-    let c: StreamConsumer = ClientConfig::new()
-        .set("group.id", &env::var("GROUP_ID")?)
-        .set("bootstrap.servers", &env::var("BOOTSTRAP_SERVERS")?)
-        .set("security.protocol", "SASL_SSL")
-        .set("sasl.mechanisms", "PLAIN")
-        .set("sasl.username", &env::var("SASL_USERNAME")?)
-        .set("sasl.password", &env::var("SASL_PASSWORD")?)
-        .set("enable.ssl.certificate.verification", "false")
-        .create()
-        .expect("Consumer creation failed");
-
-    c.subscribe(&[&env::var("ORDER_INTENT_TOPIC")?])
-        .expect("Cannot subscribe to specified topic");
-
-    c.stream()
-        .for_each_concurrent(None, |msg| async {
-            match msg {
-                Ok(msg) => {
-                    let order = handle_message(&api, msg.detach()).await;
-                    match order {
-                        Ok(o) => info!("Submitted order: {:#?}", o),
-                        Err(e) => warn!("Failed to submit order: {:?}", e),
-                    }
-                }
-                Err(e) => warn!("Error received: {:?}", e),
-            }
-        })
-        .await;
-    Ok(())
-}
 
 #[tokio::main]
 async fn main() {
