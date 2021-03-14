@@ -4,13 +4,17 @@ use alpaca::{
     orders::{OrderIntent, SubmitOrder},
     Client,
 };
+use futures::StreamExt;
+use rdkafka::{
+    config::ClientConfig, consumer::stream_consumer::StreamConsumer, consumer::Consumer,
+};
 use rdkafka::{message::OwnedMessage, Message};
-use tracing::info;
-
+use std::env;
+use tracing::{info, warn};
 pub mod errors;
 pub mod telemetry;
 
-#[tracing::instrument(skip(msg))]
+#[tracing::instrument(name = "Parsing message into OrderIntent", skip(msg))]
 fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     match msg.payload_view::<str>() {
         Some(Ok(payload)) => serde_json::from_str(payload).map_err(TraderError::Serde),
@@ -19,16 +23,51 @@ fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     }
 }
 
-#[tracing::instrument(skip(api))]
+#[tracing::instrument(name = "Executing OrderIntent", skip(api))]
 async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
     info!("Submitting order intent: {:#?}", &oi);
     api.send(SubmitOrder(oi)).await.map_err(TraderError::Alpaca)
 }
 
-#[tracing::instrument(skip(api, msg))]
-pub async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
+#[tracing::instrument(name = "Received message", skip(api, msg))]
+async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
     let order_intent = parse_message(msg)?;
     execute_order(api, order_intent).await
+}
+
+pub async fn run() -> Result<()> {
+    info!("Initiating trader");
+    let api = Client::from_env()?;
+
+    let c: StreamConsumer = ClientConfig::new()
+        .set("group.id", &env::var("GROUP_ID")?)
+        .set("bootstrap.servers", &env::var("BOOTSTRAP_SERVERS")?)
+        .set("security.protocol", "SASL_SSL")
+        .set("sasl.mechanisms", "PLAIN")
+        .set("sasl.username", &env::var("SASL_USERNAME")?)
+        .set("sasl.password", &env::var("SASL_PASSWORD")?)
+        .set("enable.ssl.certificate.verification", "false")
+        .create()
+        .expect("Consumer creation failed");
+
+    c.subscribe(&[&env::var("ORDER_INTENT_TOPIC")?])
+        .expect("Cannot subscribe to specified topic");
+
+    c.stream()
+        .for_each_concurrent(None, |msg| async {
+            match msg {
+                Ok(msg) => {
+                    let order = handle_message(&api, msg.detach()).await;
+                    match order {
+                        Ok(o) => info!("Submitted order: {:#?}", o),
+                        Err(e) => warn!("Failed to submit order: {:?}", e),
+                    }
+                }
+                Err(e) => warn!("Error received: {:?}", e),
+            }
+        })
+        .await;
+    Ok(())
 }
 
 #[cfg(test)]
