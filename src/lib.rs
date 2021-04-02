@@ -1,32 +1,31 @@
-use crate::errors::{Result, TraderError};
 use alpaca::{
     common::Order,
     orders::{OrderIntent, SubmitOrder},
     Client,
 };
+use anyhow::{anyhow, Result};
 use futures::StreamExt;
-use rdkafka::{
-    config::ClientConfig, consumer::stream_consumer::StreamConsumer, consumer::Consumer,
-};
+use kafka_settings::consumer;
 use rdkafka::{message::OwnedMessage, Message};
-use std::env;
 use tracing::{info, warn};
-pub mod errors;
+
+mod settings;
+pub use settings::Settings;
 pub mod telemetry;
 
 #[tracing::instrument(name = "Parsing message into OrderIntent", skip(msg))]
 fn parse_message(msg: OwnedMessage) -> Result<OrderIntent> {
     match msg.payload_view::<str>() {
-        Some(Ok(payload)) => serde_json::from_str(payload).map_err(TraderError::Serde),
-        Some(Err(e)) => Err(TraderError::InvalidMessage(e.to_string())),
-        None => Err(TraderError::EmptyMessage),
+        Some(Ok(payload)) => serde_json::from_str(payload).map_err(From::from),
+        Some(Err(e)) => Err(e.into()),
+        None => Err(anyhow!("Empty message received")),
     }
 }
 
-#[tracing::instrument(name = "Executing OrderIntent", skip(api))]
+#[tracing::instrument(name = "Executing OrderIntent", skip(api, oi))]
 async fn execute_order(api: &Client, oi: OrderIntent) -> Result<Order> {
-    info!("Submitting order intent: {:#?}", &oi);
-    api.send(SubmitOrder(oi)).await.map_err(TraderError::Alpaca)
+    info!("Submitting order intent: {:?}", &oi);
+    api.send(SubmitOrder(oi)).await.map_err(From::from)
 }
 
 #[tracing::instrument(name = "Received message", skip(api, msg))]
@@ -35,23 +34,10 @@ async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
     execute_order(api, order_intent).await
 }
 
-pub async fn run() -> Result<()> {
-    info!("Initiating trader");
+pub async fn run(settings: Settings) -> Result<()> {
     let api = Client::from_env()?;
 
-    let c: StreamConsumer = ClientConfig::new()
-        .set("group.id", &env::var("GROUP_ID")?)
-        .set("bootstrap.servers", &env::var("BOOTSTRAP_SERVERS")?)
-        .set("security.protocol", "SASL_SSL")
-        .set("sasl.mechanisms", "PLAIN")
-        .set("sasl.username", &env::var("SASL_USERNAME")?)
-        .set("sasl.password", &env::var("SASL_PASSWORD")?)
-        .set("enable.ssl.certificate.verification", "false")
-        .create()
-        .expect("Consumer creation failed");
-
-    c.subscribe(&[&env::var("ORDER_INTENT_TOPIC")?])
-        .expect("Cannot subscribe to specified topic");
+    let c = consumer(&settings.kafka)?;
 
     c.stream()
         .for_each_concurrent(None, |msg| async {
@@ -59,7 +45,7 @@ pub async fn run() -> Result<()> {
                 Ok(msg) => {
                     let order = handle_message(&api, msg.detach()).await;
                     match order {
-                        Ok(o) => info!("Submitted order: {:#?}", o),
+                        Ok(o) => info!("Submitted order: {:?}", o),
                         Err(e) => warn!("Failed to submit order: {:?}", e),
                     }
                 }
@@ -128,7 +114,6 @@ mod test {
         );
         let e = parse_message(msg);
         assert!(e.is_err());
-        assert!(matches!(e.err().unwrap(), TraderError::EmptyMessage));
     }
 
     #[test]
@@ -137,10 +122,10 @@ mod test {
             Some("Blargh!".as_bytes().to_vec()), // payload
             None,                                // header
             "test".into(),                       // topic
-            Timestamp::NotAvailable,
-            1,    // partition
-            0,    // offset
-            None, // headers
+            Timestamp::NotAvailable,             //timestamp
+            1,                                   // partition
+            0,                                   // offset
+            None,                                // headers
         );
         let e = parse_message(msg);
         assert!(e.is_err());
@@ -153,10 +138,10 @@ mod test {
             Some(payload.as_bytes().to_vec()), // payload
             None,                              // header
             "test".into(),                     // topic
-            Timestamp::NotAvailable,
-            1,    // partition
-            0,    // offset
-            None, // headers
+            Timestamp::NotAvailable,           //timestamp
+            1,                                 // partition
+            0,                                 // offset
+            None,                              // headers
         );
 
         let _m = mock("POST", "/orders")
@@ -180,6 +165,7 @@ mod test {
 		    "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
 		    "symbol": "AAPL",
 		    "asset_class": "us_equity",
+                    "notional": null,
 		    "qty": "1.5",
 		    "filled_qty": "0",
                     "filled_avg_price": null,
