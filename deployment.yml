@@ -6,7 +6,7 @@ data:
   bootstrap_servers: "pkc-ep9mm.us-east-2.aws.confluent.cloud:9092"
   apca_api_base_url: "https://paper-api.alpaca.markets/v2"
   group_id: "trader"
-  order_intent_topic: "intended-trades"
+  input_topics: ["intended-trades"]
 
 ---
 apiVersion: apps/v1

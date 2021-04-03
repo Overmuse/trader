@@ -1,18 +1,19 @@
+use anyhow::Result;
 use dotenv::dotenv;
-use tracing::{error, info};
+use tracing::info;
 use trader::{
     run,
     telemetry::{get_subscriber, init_subscriber},
+    Settings,
 };
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     dotenv().ok();
-    let subscriber = get_subscriber("trader".into(), "info".into());
+    let subscriber = get_subscriber();
     init_subscriber(subscriber);
+    info!("Starting trader");
+    let settings = Settings::new()?;
 
-    match run().await {
-        Ok(_) => info!("Done!"),
-        Err(e) => error!("An error occured: {:?}", e),
-    }
+    run(settings).await
 }
