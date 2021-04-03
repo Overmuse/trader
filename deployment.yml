@@ -1,12 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: trader
+  name: trader-cm
 data:
-  bootstrap_servers: "pkc-ep9mm.us-east-2.aws.confluent.cloud:9092"
-  apca_api_base_url: "https://paper-api.alpaca.markets/v2"
-  group_id: "trader"
-  input_topics: ["intended-trades"]
+  ALPACA__BASE_URL: https://paper-api.alpaca.markets/v2
+  KAFKA__GROUP_ID: trader
+  KAFKA__INPUT_TOPICS: intended-trades
 
 ---
 apiVersion: apps/v1
@@ -26,44 +25,12 @@ spec:
       containers:
       - name: trader
         image: 799439856592.dkr.ecr.us-east-1.amazonaws.com/trader:${IMAGE_TAG}
-        env:
-        - name: APCA_API_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: alpaca
-              key: APCA_API_KEY_ID
-        - name: APCA_API_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: alpaca
-              key: APCA_API_SECRET_KEY
-        - name: SASL_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: kafka
-              key: SASL_USERNAME
-        - name: SASL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: kafka
-              key: SASL_PASSWORD
-        - name: BOOTSTRAP_SERVERS
-          valueFrom:
-            configMapKeyRef:
-              name: trader
-              key: bootstrap_servers
-        - name: APCA_API_BASE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: trader
-              key: apca_api_base_url
-        - name: GROUP_ID
-          valueFrom:
-            configMapKeyRef:
-              name: trader
-              key: group_id
-        - name: ORDER_INTENT_TOPIC
-          valueFrom:
-            configMapKeyRef:
-              name: trader
-              key: order_intent_topic
+        envFrom:
+        - secretRef:
+            name: alpaca
+        - secretRef:
+            name: kafka
+        - configMapRef:
+            name: trader-cm
+        - configMapRef:
+            name: kafka-config-map
