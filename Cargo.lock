@@ -563,8 +563,8 @@ dependencies = [
 
 [[package]]
 name = "kafka-settings"
-version = "0.1.0"
-source = "git+ssh://git@github.com/Overmuse/kafka-settings?tag=v0.1.0#670c27de25cc64e15402af26bb79b7a1cb335ba1"
+version = "0.2.2"
+source = "git+ssh://git@github.com/Overmuse/kafka-settings?tag=v0.2.2#e5056ca211632476f2fb74ffe15bc915a9a878f9"
 dependencies = [
  "rdkafka",
  "serde 1.0.125",

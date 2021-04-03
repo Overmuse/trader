@@ -35,7 +35,11 @@ async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
 }
 
 pub async fn run(settings: Settings) -> Result<()> {
-    let api = Client::from_env()?;
+    let api = Client::new(
+        settings.alpaca.base_url,
+        settings.alpaca.key_id,
+        settings.alpaca.secret_key,
+    )?;
 
     let c = consumer(&settings.kafka)?;
 
