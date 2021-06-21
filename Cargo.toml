@@ -1,6 +1,6 @@
 [package]
 name = "trader"
-version = "1.0.3"
+version = "1.1.0"
 authors = ["RollenRegistratorBot <rollenseb@gmail.com>"]
 edition = "2018"
 
@@ -14,6 +14,7 @@ dotenv = "0.15.0"
 futures = "0.3.5"
 kafka-settings = { git = "ssh://git@github.com/Overmuse/kafka-settings", tag = "v0.2.2" }
 rdkafka = {version = "0.26.0", features = ["ssl-vendored"]}
+sentry = "0.22.0"
 serde = "1.0.116"
 serde_json = "1.0.57"
 tokio = { version = "1.2", features = ["macros", "rt-multi-thread"] }
