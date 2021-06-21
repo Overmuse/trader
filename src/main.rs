@@ -14,6 +14,13 @@ async fn main() -> Result<()> {
     init_subscriber(subscriber);
     info!("Starting trader");
     let settings = Settings::new()?;
+    let _guard = sentry::init((
+        settings.sentry.address.clone(),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ));
 
     run(settings).await
 }
