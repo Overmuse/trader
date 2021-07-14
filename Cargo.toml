@@ -1,12 +1,13 @@
 [package]
 name = "trader"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["RollenRegistratorBot <rollenseb@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+again = "0.1.2"
 alpaca = { git = "ssh://git@github.com/Overmuse/alpaca", tag = "v0.7.0" }
 anyhow = "1.0.40"
 config = "0.11.0"
