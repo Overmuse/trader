@@ -1,27 +1,28 @@
 [package]
 name = "trader"
-version = "1.1.1"
+version = "2.0.0"
 authors = ["RollenRegistratorBot <rollenseb@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-again = "0.1.2"
-alpaca = { git = "ssh://git@github.com/Overmuse/alpaca", tag = "v0.7.0" }
-anyhow = "1.0.40"
-config = "0.11.0"
-dotenv = "0.15.0"
-futures = "0.3.5"
-kafka-settings = { git = "ssh://git@github.com/Overmuse/kafka-settings", tag = "v0.2.2" }
-rdkafka = {version = "0.26.0", features = ["ssl-vendored"]}
-sentry = "0.22.0"
-serde = "1.0.116"
-serde_json = "1.0.57"
+again = "0.1"
+alpaca = { git = "ssh://git@github.com/Overmuse/alpaca", tag = "v0.7.2", default-features=false, features = ["rest"] }
+anyhow = "1.0"
+config = "0.11"
+dotenv = "0.15"
+futures = "0.3"
+kafka-settings = { git = "ssh://git@github.com/Overmuse/kafka-settings", tag = "v0.3.3" }
+rdkafka = {version = "0.26", features = ["ssl-vendored"]}
+sentry = "0.23"
+serde = "1.0"
+serde_json = "1.0"
 tokio = { version = "1.2", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
-uuid = "0.8.1"
+trading-base = { git = "ssh://git@github.com/Overmuse/trading-base", tag = "v0.3.0" }
+uuid = "0.8"
 
 [dev-dependencies]
-mockito = "0.27"
+mockito = "0.30"
