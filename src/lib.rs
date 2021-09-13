@@ -7,8 +7,9 @@ use anyhow::{anyhow, Result};
 use futures::StreamExt;
 use kafka_settings::consumer;
 use rdkafka::{message::OwnedMessage, Message};
+use rust_decimal::prelude::*;
 use tracing::{info, warn};
-use trading_base::TradeIntent;
+use trading_base::{OrderType, TradeIntent};
 
 mod settings;
 pub use settings::Settings;
@@ -21,6 +22,45 @@ fn parse_message(msg: OwnedMessage) -> Result<TradeIntent> {
         Some(Err(e)) => Err(e.into()),
         None => Err(anyhow!("Empty message received")),
     }
+}
+
+fn normalize_intent(ti: &mut TradeIntent) {
+    let new_order_type = if ti.qty.is_positive() {
+        match ti.order_type {
+            OrderType::Market => OrderType::Market,
+            OrderType::Limit { limit_price } => OrderType::Limit {
+                limit_price: limit_price.round_dp_with_strategy(2, RoundingStrategy::ToZero),
+            },
+            OrderType::Stop { stop_price } => OrderType::Stop {
+                stop_price: stop_price.round_dp_with_strategy(2, RoundingStrategy::AwayFromZero),
+            },
+            OrderType::StopLimit {
+                stop_price,
+                limit_price,
+            } => OrderType::StopLimit {
+                stop_price: stop_price.round_dp_with_strategy(2, RoundingStrategy::AwayFromZero),
+                limit_price: limit_price.round_dp_with_strategy(2, RoundingStrategy::ToZero),
+            },
+        }
+    } else {
+        match ti.order_type {
+            OrderType::Market => OrderType::Market,
+            OrderType::Limit { limit_price } => OrderType::Limit {
+                limit_price: limit_price.round_dp_with_strategy(2, RoundingStrategy::AwayFromZero),
+            },
+            OrderType::Stop { stop_price } => OrderType::Stop {
+                stop_price: stop_price.round_dp_with_strategy(2, RoundingStrategy::ToZero),
+            },
+            OrderType::StopLimit {
+                stop_price,
+                limit_price,
+            } => OrderType::StopLimit {
+                stop_price: stop_price.round_dp_with_strategy(2, RoundingStrategy::ToZero),
+                limit_price: limit_price.round_dp_with_strategy(2, RoundingStrategy::AwayFromZero),
+            },
+        }
+    };
+    ti.order_type = new_order_type;
 }
 
 fn translate_intent(ti: TradeIntent) -> OrderIntent {
@@ -65,7 +105,8 @@ async fn execute_order(api: &Client, oi: &OrderIntent) -> Result<Order> {
 
 #[tracing::instrument(name = "Received message", skip(api, msg))]
 async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
-    let trade_intent = parse_message(msg)?;
+    let mut trade_intent = parse_message(msg)?;
+    normalize_intent(&mut trade_intent);
     let order_intent = translate_intent(trade_intent);
     again::retry(|| execute_order(api, &order_intent)).await
 }
@@ -102,6 +143,31 @@ mod test {
     use alpaca::Client;
     use mockito::mock;
     use rdkafka::message::Timestamp;
+
+    #[test]
+    fn test_normalize_intent() {
+        let mut ti = TradeIntent::new("AAPL", 100).order_type(OrderType::Limit {
+            limit_price: Decimal::new(7777, 3),
+        });
+        normalize_intent(&mut ti);
+        assert_eq!(
+            ti.order_type,
+            OrderType::Limit {
+                limit_price: Decimal::new(777, 2)
+            }
+        );
+
+        let mut ti = TradeIntent::new("AAPL", -100).order_type(OrderType::Limit {
+            limit_price: Decimal::new(7777, 3),
+        });
+        normalize_intent(&mut ti);
+        assert_eq!(
+            ti.order_type,
+            OrderType::Limit {
+                limit_price: Decimal::new(778, 2)
+            }
+        );
+    }
 
     #[test]
     fn unwrap_msg() {
