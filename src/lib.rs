@@ -1,6 +1,6 @@
 use alpaca::{
     common::Order,
-    orders::{OrderIntent, SubmitOrder},
+    orders::{CancelOrder, OrderIntent, SubmitOrder},
     Client, Side,
 };
 use anyhow::{anyhow, Result};
@@ -9,14 +9,15 @@ use kafka_settings::consumer;
 use rdkafka::{message::OwnedMessage, Message};
 use rust_decimal::prelude::*;
 use tracing::{info, warn};
-use trading_base::{OrderType, TradeIntent};
+use trading_base::{OrderType, TradeIntent, TradeMessage};
+use uuid::Uuid;
 
 mod settings;
 pub use settings::Settings;
 pub mod telemetry;
 
 #[tracing::instrument(name = "Parsing message into TradeIntent", skip(msg))]
-fn parse_message(msg: OwnedMessage) -> Result<TradeIntent> {
+fn parse_message(msg: OwnedMessage) -> Result<TradeMessage> {
     match msg.payload_view::<str>() {
         Some(Ok(payload)) => serde_json::from_str(payload).map_err(From::from),
         Some(Err(e)) => Err(e.into()),
@@ -103,12 +104,11 @@ async fn execute_order(api: &Client, oi: &OrderIntent) -> Result<Order> {
     api.send(SubmitOrder(oi.clone())).await.map_err(From::from)
 }
 
-#[tracing::instrument(name = "Received message", skip(api, msg))]
-async fn handle_message(api: &Client, msg: OwnedMessage) -> Result<Order> {
-    let mut trade_intent = parse_message(msg)?;
-    normalize_intent(&mut trade_intent);
-    let order_intent = translate_intent(trade_intent);
-    again::retry(|| execute_order(api, &order_intent)).await
+#[tracing::instrument(name = "Cancelling OrderIntent", skip(api, id))]
+async fn cancel_order(api: &Client, id: Uuid) -> Result<()> {
+    info!("Cancelling order: {}", id);
+    api.send(CancelOrder(id.to_string().as_ref())).await?;
+    Ok(())
 }
 
 pub async fn run(settings: Settings) -> Result<()> {
@@ -124,10 +124,25 @@ pub async fn run(settings: Settings) -> Result<()> {
         .for_each_concurrent(None, |msg| async {
             match msg {
                 Ok(msg) => {
-                    let order = handle_message(&api, msg.detach()).await;
-                    match order {
-                        Ok(o) => info!("Submitted order: {:?}", o),
-                        Err(e) => warn!("Failed to submit order: {:?}", e),
+                    let trade_message = parse_message(msg.detach());
+                    match trade_message {
+                        Ok(TradeMessage::New { mut intent }) => {
+                            normalize_intent(&mut intent);
+                            let order_intent = translate_intent(intent);
+                            let res = again::retry(|| execute_order(&api, &order_intent)).await;
+                            match res {
+                                Ok(o) => info!("Submitted order: {:?}", o),
+                                Err(e) => warn!("Failed to submit order: {:?}", e),
+                            }
+                        }
+                        Ok(TradeMessage::Cancel { id }) => {
+                            if let Err(e) = cancel_order(&api, id).await {
+                                warn!("Failed to cancel order: {:?}", e)
+                            } else {
+                                info!("Cancelled order: {}", id)
+                            }
+                        }
+                        Err(e) => warn!("Failed to parse message: {:?}", e),
                     }
                 }
                 Err(e) => warn!("Error received: {:?}", e),
@@ -170,13 +185,41 @@ mod test {
     }
 
     #[test]
-    fn unwrap_msg() {
+    fn unwrap_new_order_msg() {
         let payload = r#"{
-            "ticker":"AAPL",
-            "qty":1,
-            "order_type":"limit",
-            "limit_price":"100",
-            "time_in_force":"gtc",
+            "action": "new",
+            "intent": {
+                "ticker":"AAPL",
+                "qty":1,
+                "order_type":"limit",
+                "limit_price":"100",
+                "time_in_force":"gtc",
+                "id":"904837e3-3b76-47ec-b432-046db621571b"
+            }
+        }"#
+        .as_bytes()
+        .to_vec();
+        let msg = OwnedMessage::new(
+            Some(payload), // payload
+            None,          // header
+            "test".into(), // topic
+            Timestamp::NotAvailable,
+            1,    // partition
+            0,    // offset
+            None, // headers
+        );
+        let ti = parse_message(msg).unwrap();
+        if let TradeMessage::New { intent } = ti {
+            assert_eq!(&intent.ticker, "AAPL");
+        } else {
+            panic!("Unexpected variant")
+        }
+    }
+
+    #[test]
+    fn unwrap_cancel_order_msg() {
+        let payload = r#"{
+            "action": "cancel",
             "id":"904837e3-3b76-47ec-b432-046db621571b"
         }"#
         .as_bytes()
@@ -191,7 +234,14 @@ mod test {
             None, // headers
         );
         let ti = parse_message(msg).unwrap();
-        assert_eq!(&ti.ticker, "AAPL");
+        if let TradeMessage::Cancel { id } = ti {
+            assert_eq!(
+                id,
+                Uuid::from_str("904837e3-3b76-47ec-b432-046db621571b").unwrap()
+            );
+        } else {
+            panic!("Unexpected variant")
+        }
     }
 
     #[test]
@@ -226,7 +276,7 @@ mod test {
 
     #[tokio::test]
     async fn generates_correct_trade() {
-        let payload = r#"{"ticker":"AAPL","qty":1,"order_type":"limit","limit_price":100,"time_in_force":"gtc","id":"904837e3-3b76-47ec-b432-046db621571b"}"#;
+        let payload = r#"{"action":"new","intent":{"ticker":"AAPL","qty":1,"order_type":"limit","limit_price":100,"time_in_force":"gtc","id":"904837e3-3b76-47ec-b432-046db621571b"}}"#;
         let order_payload = r#"{"symbol":"AAPL","qty":"1","side":"buy","type":"limit","limit_price":"100","time_in_force":"gtc","extended_hours":false,"client_order_id":"904837e3-3b76-47ec-b432-046db621571b","order_class":"simple"}"#;
         let msg = OwnedMessage::new(
             Some(payload.as_bytes().to_vec()), // payload
@@ -283,12 +333,19 @@ mod test {
         )
         .unwrap();
 
-        handle_message(&client, msg).await.unwrap();
+        let msg = parse_message(msg).unwrap();
+        if let TradeMessage::New { mut intent } = msg {
+            normalize_intent(&mut intent);
+            let order_intent = translate_intent(intent);
+            execute_order(&client, &order_intent).await.unwrap();
+        } else {
+            panic!("Unexpected variant")
+        }
     }
 
     #[tokio::test]
     async fn handles_trainsient_errors() {
-        let payload = r#"{"ticker":"AAPL","qty":1,"order_type":"limit","limit_price":"100","time_in_force":"gtc","id":"904837e3-3b76-47ec-b432-046db621571b"}"#;
+        let payload = r#"{"action":"new","intent":{"ticker":"AAPL","qty":1,"order_type":"limit","limit_price":"100","time_in_force":"gtc","id":"904837e3-3b76-47ec-b432-046db621571b"}}"#;
         let order_payload = r#"{"symbol":"AAPL","qty":"1","side":"buy","type":"limit","limit_price":"100","time_in_force":"gtc","extended_hours":false,"client_order_id":"904837e3-3b76-47ec-b432-046db621571b","order_class":"simple"}"#;
         let msg = OwnedMessage::new(
             Some(payload.as_bytes().to_vec()), // payload
@@ -352,8 +409,17 @@ mod test {
         )
         .unwrap();
 
-        handle_message(&client, msg).await.unwrap();
-        m1.assert();
-        m2.assert();
+        let msg = parse_message(msg).unwrap();
+        if let TradeMessage::New { mut intent } = msg {
+            normalize_intent(&mut intent);
+            let order_intent = translate_intent(intent);
+            again::retry(|| execute_order(&client, &order_intent))
+                .await
+                .unwrap();
+            m1.assert();
+            m2.assert();
+        } else {
+            panic!("Unexpected variant")
+        }
     }
 }
