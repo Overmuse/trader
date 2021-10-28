@@ -9,6 +9,6 @@
      steps:
        - uses: GoogleCloudPlatform/release-please-action@v2
          with:
-           token: ${{ secrets.GITHUB_TOKEN }}
+           token: ${{ secrets.GH_TOKEN }}
            release-type: rust
            package-name: release-please-action
